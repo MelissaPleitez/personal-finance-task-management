@@ -4,11 +4,12 @@ interface ButtonProps {
   variant?: "primary" | "secondary";
   onClick?: () => void;
   text: string;
+  type?: "button" | "submit" | "reset";
 }
 
-const Button = ({text, variant = "primary", onClick}: ButtonProps) => {
+const Button = ({text, variant = "primary", onClick, type}: ButtonProps) => {
   return (
-    <button className={`btn btn--${variant}`} onClick={onClick}>
+    <button type={type} className={`btn btn--${variant}`} onClick={onClick}>
       {text}
     </button>
   );

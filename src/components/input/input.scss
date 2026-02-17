@@ -1,0 +1,13 @@
+@use "../../styles/variables" as *;
+
+input {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: $border-radius;
+    transition: $transition;
+    
+    &:focus {
+        border-color: $secondary;
+        outline: none;
+    }
+}

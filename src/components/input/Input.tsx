@@ -1,11 +1,14 @@
+import "./input.scss";
 
 interface InputProps {
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  type?: string;
+  value?: string;
 }
 
-const Input = ({onChange}: InputProps) => {
+const Input = ({ onChange, type, value }: InputProps) => {
   return (
-    <input className="input" onChange={onChange} />
+    <input type={type} value={value} className="input" onChange={onChange} />
   )
 }
 

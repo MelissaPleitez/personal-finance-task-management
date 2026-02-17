@@ -1,0 +1,54 @@
+@use "../../styles/variables" as *;
+
+.task-card {
+  background: white;
+  padding: 20px;
+  border-radius: $border-radius;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  transition: $transition;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 35px rgba(0, 0, 0, 0.12);
+  }
+
+  &.completed {
+    opacity: 0.6;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__description {
+    color: $text-dark;
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+
+  &--pending {
+    background-color: $secondary;
+    color: white;
+  }
+
+  &--completed {
+    background-color: $primary;
+    color: white;
+  }
+}
