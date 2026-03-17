@@ -1,8 +1,8 @@
 import { useState } from "react";
 import "./taskForm.scss";
-import type { Task } from "../card/TaskCard";
-import Input from "../input/Input";
-import Button from "../button/Button";
+import type { Task } from "../../card/TaskCard";
+import Input from "../../input/Input";
+import Button from "../../button/Button";
 
 interface TaskFormProps {
   onCreate: (task: Task) => void;
