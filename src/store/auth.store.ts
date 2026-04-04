@@ -11,7 +11,7 @@ interface AuthStore {
 }
 
 const useAuthStore = create<AuthStore>()(
-  persist(
+  persist(    //persist middleware = automatically save the Zustand state in the browser's localStorage and rehydrate it on page reloads.
     (set) => ({
       user: null,
       token: null,
