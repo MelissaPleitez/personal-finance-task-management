@@ -1,9 +1,11 @@
 import { Outlet } from "react-router-dom"
 import Sidebar from "./Sidebar"
 import Topbar from "./Topbar"
+import useAuth from "@/hooks/useAuth"
 
 
 const AppLayout = () => {
+  useAuth()
   return (
     <div className="flex min-h-screen bg-navy-900">
       {/* Sidebar — left side */}
