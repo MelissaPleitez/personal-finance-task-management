@@ -12,6 +12,7 @@ import { TransactionType } from '@/types/transaction.types'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -47,7 +48,7 @@ const getIcon = (iconName: string, size = 20) => {
 }
 
 // ── category card ──
-const CategoryCard = ({ category }: { category: Category }) => (
+const CategoryCard = ({ category, isConfirming, openEdit, handleDelete, setDeletingId, deleteError }: { category: Category; isConfirming: boolean, openEdit: (category: Category) => void, handleDelete: (categoryId: number) => void, setDeletingId: (id: number | null) => void, deleteError: string | null }) => (
   <Card className="p-4 bg-navy-800 border-navy-700 hover:border-violet-500/50 transition-all cursor-pointer">
     <div className="flex items-center gap-3">
       <div
@@ -69,6 +70,47 @@ const CategoryCard = ({ category }: { category: Category }) => (
           }`}>
             {category.type}
           </Badge>
+          {
+          category.isSystem === true ? '': (
+          !isConfirming ? (
+            
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => openEdit(category)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-navy-700 transition-all"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => setDeletingId(category.id)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                
+                  ) : (
+                    /* ── inline delete confirmation ── */
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400">Delete?</span>
+                      <button
+                        onClick={() => handleDelete(category.id)}
+                        className="px-2 py-1 rounded text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all"
+                      >
+                        Yes
+                      </button>
+                      <button
+                        onClick={() => setDeletingId(null)}
+                        className="px-2 py-1 rounded text-xs bg-navy-700 text-slate-400 hover:bg-navy-600 transition-all"
+                      >
+                        No
+                      </button>
+                    </div>
+                  )
+                )}
+                  {deleteError && (
+            <p className="text-red-400 text-xs mt-1">{deleteError}</p>
+          )}
         </div>
       </div>
     </div>
@@ -76,7 +118,7 @@ const CategoryCard = ({ category }: { category: Category }) => (
 )
 
 // ── category grid ──
-const CategoryGrid = ({ categories }: { categories: Category[] }) => {
+const CategoryGrid = ({ categories, deletingId, openEdit, handleDelete, setDeletingId, deleteError }: { categories: Category[]; deletingId: number | null, openEdit: (category: Category) => void, handleDelete: (categoryId: number) => void, setDeletingId: (id: number | null) => void, deleteError: string | null }) => {
   if (categories.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-48 border border-dashed border-navy-700 rounded-xl">
@@ -88,18 +130,24 @@ const CategoryGrid = ({ categories }: { categories: Category[] }) => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-      {categories.map(cat => (
-        <CategoryCard key={cat.id} category={cat} />
-      ))}
+      {categories.map((cat) => {
+        const isConfirming = deletingId === cat.id;
+        return (
+          <CategoryCard key={cat.id} category={cat} isConfirming={isConfirming} openEdit={openEdit} handleDelete={handleDelete} setDeletingId={setDeletingId} deleteError={deleteError} />
+        );
+      })}
     </div>
   )
 }
 
 // ── main page ──
 const CategoriesPage = () => {
-  const { categories, systemCategories, userCategories, loading, error, refetch } = useCategories()
-  const [open, setOpen] = useState(false)
-  const [createError, setCreateError] = useState<string | null>(null)
+  const { categories, systemCategories, userCategories, loading, error , refetch } = useCategories()
+  const [formError, setFormError] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<Category | null | undefined>(undefined)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const isOpen = selectedCategory !== undefined
 
   const {
     register,
@@ -116,15 +164,52 @@ const CategoriesPage = () => {
   const colorValue = watch('color')
   const iconValue = watch('icon')
 
+  const openCreate = () => {
+    reset({ color: '#888888', icon: '', name: '', type: TransactionType.EXPENSE }) // reset form and set default color
+    setFormError(null)
+    setSelectedCategory(null) 
+  }
+
+  const openEdit = (category: Category) => {
+      reset({ color: category.color, icon: category.icon, name: category.name, type: category.type }) // reset form with category data
+      setFormError(null)
+      setSelectedCategory(category) // category = edit mode, modal open
+  }
+
+  const closeModal = () => {
+    setSelectedCategory(undefined) // undefined = closed
+    reset()
+  }
+
   const onSubmit = async (data: CreateCategoryData) => {
     try {
-      setCreateError(null)
-      await api.post('/categories', data)
-      reset()
-      setOpen(false)
+      setFormError(null)
+      console.log('id category: ', selectedCategory?.id)
+      console.log('data nueva? : ', data)
+
+      console.log('data despues:', TransactionType.EXPENSE)
+      
+      if(selectedCategory){
+        await api.put(`/categories/${selectedCategory.id}`, data)
+      } else {
+        await api.post('/categories', data)
+      }
+      closeModal()
       refetch()
     } catch {
-      setCreateError('Failed to create category. Please try again.')
+      setFormError('Failed to create category. Please try again.')
+    }
+  }
+
+  const handleDelete = async (categoryId: number) => {
+    try {
+      setDeleteError(null);
+      await api.delete(`/categories/${categoryId}`)
+      setDeletingId(null)
+      refetch()
+    } catch {
+      setDeleteError('Failed to delete category. Please try again.')
+      setDeletingId(null)
     }
   }
 
@@ -149,7 +234,7 @@ const CategoriesPage = () => {
           {categories.length} total · {systemCategories.length} system · {userCategories.length} custom
         </p>
         <Button
-          onClick={() => setOpen(true)}
+          onClick={openCreate}
           size="sm"
           className="bg-violet-500 hover:bg-violet-600 text-white"
         >
@@ -157,6 +242,11 @@ const CategoriesPage = () => {
           New Category
         </Button>
       </div>
+      {formError && (
+          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+            <p className="text-red-400 text-sm">{formError}</p>
+          </div>
+      )}
 
       {/* ── tabs ── */}
       <Tabs defaultValue="all" className="space-y-4">
@@ -182,11 +272,11 @@ const CategoriesPage = () => {
         </TabsList>
 
         <TabsContent value="all">
-          <CategoryGrid categories={categories} />
+          <CategoryGrid categories={categories} deletingId={deletingId} openEdit={openEdit} handleDelete={handleDelete} setDeletingId={setDeletingId} deleteError={deleteError} />
         </TabsContent>
 
         <TabsContent value="system">
-          <CategoryGrid categories={systemCategories} />
+          <CategoryGrid categories={systemCategories} deletingId={deletingId} openEdit={openEdit} handleDelete={handleDelete} setDeletingId={setDeletingId} deleteError={deleteError}  />
         </TabsContent>
 
         <TabsContent value="custom">
@@ -196,21 +286,23 @@ const CategoriesPage = () => {
               <p className="text-slate-600 text-xs mt-1">Click "New Category" to create one</p>
             </div>
           ) : (
-            <CategoryGrid categories={userCategories} />
+            <CategoryGrid categories={userCategories} deletingId={deletingId} openEdit={openEdit} handleDelete={handleDelete} setDeletingId={setDeletingId} deleteError={deleteError}  />
           )}
         </TabsContent>
       </Tabs>
 
       {/* ── create category modal ── */}
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={isOpen} onOpenChange={(open) => { if (!open) closeModal() }}>
         <DialogContent className="bg-navy-800 border-navy-700 text-white">
           <DialogHeader>
-            <DialogTitle className="text-white">New Category</DialogTitle>
+            <DialogTitle className="text-white">
+              {selectedCategory? 'Edit Category' : 'Add New Category'}
+            </DialogTitle>
           </DialogHeader>
 
-          {createError && (
+          {formError && (
             <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-              <p className="text-red-400 text-sm">{createError}</p>
+              <p className="text-red-400 text-sm">{formError}</p>
             </div>
           )}
 
@@ -218,7 +310,7 @@ const CategoriesPage = () => {
 
             {/* name */}
             <div className="space-y-2">
-              <Label className="text-slate-300">Name</Label>
+              <Label className="text-slate-300">Category Name</Label>
               <Input
                 placeholder="e.g. Groceries, Side Hustle"
                 className="bg-navy-900 border-navy-700 text-white"
@@ -229,7 +321,7 @@ const CategoriesPage = () => {
 
             {/* type */}
             <div className="space-y-2">
-              <Label className="text-slate-300">Type</Label>
+              <Label className="text-slate-300">Category Type</Label>
               <select
                 className="w-full h-9 px-3 rounded-md bg-navy-900 border border-navy-700 text-white text-sm"
                 {...register('type')}
@@ -244,7 +336,7 @@ const CategoriesPage = () => {
             {/* icon picker */}
             <div className="space-y-2">
               <Label className="text-slate-300">
-                Icon
+                Category Icon
                 {iconValue && (
                   <span className="text-slate-500 text-xs ml-2">
                     — {iconValue} selected
@@ -329,7 +421,7 @@ const CategoriesPage = () => {
                 type="button"
                 variant="outline"
                 className="flex-1 border-navy-700 text-slate-300"
-                onClick={() => { setOpen(false); reset() }}
+                onClick={closeModal}
               >
                 Cancel
               </Button>
@@ -338,7 +430,7 @@ const CategoriesPage = () => {
                 disabled={isSubmitting}
                 className="flex-1 bg-violet-500 hover:bg-violet-600 text-white"
               >
-                {isSubmitting ? 'Creating...' : 'Create Category'}
+                {isSubmitting ? 'Creating...' : selectedCategory ? 'Save Changes' : 'Create Category'}
               </Button>
             </div>
           </form>

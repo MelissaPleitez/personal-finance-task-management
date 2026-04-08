@@ -6,49 +6,89 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { CreditCard, Wallet, PiggyBank, Building, Plus } from 'lucide-react'
+import { CreditCard, Wallet, PiggyBank, Building, Plus, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import api from '@/lib/axios'
 import { AccountType } from '@/types/account.types'
+import type { Account } from '@/types/account.types'
 
-// ── account type display helpers ──
 const accountTypeConfig = {
-  [AccountType.CASH]:    { label: 'Cash',     icon: Wallet,    color: 'bg-green-500/20 text-green-400' },
-  [AccountType.BANK]:    { label: 'Bank',     icon: Building,  color: 'bg-blue-500/20 text-blue-400' },
-  [AccountType.CREDIT]:  { label: 'Credit',   icon: CreditCard,color: 'bg-red-500/20 text-red-400' },
-  [AccountType.SAVINGS]: { label: 'Savings',  icon: PiggyBank, color: 'bg-violet-500/20 text-violet-400' },
+  [AccountType.CASH]:    { label: 'Cash',    icon: Wallet,     color: 'bg-green-500/20 text-green-400' },
+  [AccountType.BANK]:    { label: 'Bank',    icon: Building,   color: 'bg-blue-500/20 text-blue-400' },
+  [AccountType.CREDIT]:  { label: 'Credit',  icon: CreditCard, color: 'bg-red-500/20 text-red-400' },
+  [AccountType.SAVINGS]: { label: 'Savings', icon: PiggyBank,  color: 'bg-violet-500/20 text-violet-400' },
 }
 
-// ── create account form schema ──
-const createAccountSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
+const accountSchema = z.object({
+  name:        z.string().min(1, 'Name is required'),
   accountType: z.nativeEnum(AccountType, { message: 'Please select a type' }),
 })
 
-type CreateAccountData = z.infer<typeof createAccountSchema>
+type AccountFormData = z.infer<typeof accountSchema>
 
 const AccountsPage = () => {
   const { accounts, loading, error, refetch } = useAccounts()
-  const [open, setOpen] = useState(false)
-  const [createError, setCreateError] = useState<string | null>(null)
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<CreateAccountData>({
-    resolver: zodResolver(createAccountSchema)
+  // ── modal state: null = closed, undefined = create mode, Account = edit mode
+  const [selectedAccount, setSelectedAccount] = useState<Account | null | undefined>(undefined)
+  const isOpen = selectedAccount !== undefined
+
+  // ── delete confirmation state: holds the id being confirmed
+  const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [formError, setFormError] = useState<string | null>(null)
+
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<AccountFormData>({
+    resolver: zodResolver(accountSchema),
   })
 
-  // ── submit new account ──
-  const onSubmit = async (data: CreateAccountData) => {
+  // ── open modal helpers
+  const openCreate = () => {
+    reset({ name: '', accountType: undefined })
+    setFormError(null)
+    setSelectedAccount(null)   // null = create mode, modal open
+  }
+
+  const openEdit = (account: Account) => {
+    reset({ name: account.name, accountType: account.accountType })
+    setFormError(null)
+    setSelectedAccount(account) // account = edit mode, modal open
+  }
+
+  const closeModal = () => {
+    setSelectedAccount(undefined) // undefined = closed
+    reset()
+  }
+
+  // ── submit: create or update depending on selectedAccount
+  const onSubmit = async (data: AccountFormData) => {
     try {
-      setCreateError(null)
-      await api.post('/accounts', data)
-      reset()           // clear form
-      setOpen(false)    // close modal
-      refetch()         // refresh list
+      setFormError(null)
+      if (selectedAccount) {
+        await api.put(`/accounts/${selectedAccount.id}`, data)
+      } else {
+        await api.post('/accounts', data)
+      }
+      closeModal()
+      refetch()
     } catch {
-      setCreateError('Failed to create account. Please try again.')
+      setFormError(selectedAccount ? 'Failed to update account.' : 'Failed to create account.')
+    }
+  }
+
+  // ── delete
+  const handleDelete = async (id: number) => {
+    try {
+      setDeleteError(null)
+      await api.delete(`/accounts/${id}`)
+      setDeletingId(null)
+      refetch()
+    } catch {
+      setDeleteError('Failed to delete account.')
+      setDeletingId(null)
     }
   }
 
@@ -69,26 +109,16 @@ const AccountsPage = () => {
 
       {/* ── stat cards ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard
-          title="Total Accounts"
-          value={String(accounts.length)}
-          subtitle="Active accounts"
-        />
+        <StatCard title="Total Accounts" value={String(accounts.length)} subtitle="Active accounts" />
         <StatCard
           title="Cash & Bank"
-          value={String(accounts.filter(a => 
-            a.accountType === AccountType.CASH || 
-            a.accountType === AccountType.BANK
-          ).length)}
+          value={String(accounts.filter(a => a.accountType === AccountType.CASH || a.accountType === AccountType.BANK).length)}
           subtitle="Liquid accounts"
           valueColor="text-green-400"
         />
         <StatCard
           title="Credit & Savings"
-          value={String(accounts.filter(a => 
-            a.accountType === AccountType.CREDIT || 
-            a.accountType === AccountType.SAVINGS
-          ).length)}
+          value={String(accounts.filter(a => a.accountType === AccountType.CREDIT || a.accountType === AccountType.SAVINGS).length)}
           subtitle="Other accounts"
           valueColor="text-violet-400"
         />
@@ -96,18 +126,17 @@ const AccountsPage = () => {
 
       {/* ── header row ── */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">
-          Your Accounts ({accounts.length})
-        </h2>
-        <Button
-          onClick={() => setOpen(true)}
-          size="sm"
-          className="bg-violet-500 hover:bg-violet-600 text-white"
-        >
-          <Plus size={16} className="mr-1" />
-          Add Account
+        <h2 className="text-lg font-semibold text-white">Your Accounts ({accounts.length})</h2>
+        <Button onClick={openCreate} size="sm" className="bg-violet-500 hover:bg-violet-600 text-white">
+          <Plus size={16} className="mr-1" /> Add Account
         </Button>
       </div>
+
+      {deleteError && (
+        <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <p className="text-red-400 text-sm">{deleteError}</p>
+        </div>
+      )}
 
       {/* ── accounts grid ── */}
       {accounts.length === 0 ? (
@@ -121,12 +150,10 @@ const AccountsPage = () => {
           {accounts.map((account) => {
             const config = accountTypeConfig[account.accountType]
             const Icon = config.icon
+            const isConfirming = deletingId === account.id
 
             return (
-              <Card
-                key={account.id}
-                className="p-5 bg-navy-800 border-navy-700 hover:border-violet-500/50 transition-all cursor-pointer"
-              >
+              <Card key={account.id} className="p-5 bg-navy-800 border-navy-700 hover:border-navy-600 transition-all">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${config.color}`}>
@@ -134,12 +161,46 @@ const AccountsPage = () => {
                     </div>
                     <div>
                       <p className="text-white font-medium">{account.name}</p>
-                      <Badge className={`text-xs mt-0.5 ${config.color} border-0`}>
-                        {config.label}
-                      </Badge>
+                      <Badge className={`text-xs mt-0.5 ${config.color} border-0`}>{config.label}</Badge>
                     </div>
                   </div>
+
+                  {/* ── action buttons ── */}
+                  {!isConfirming ? (
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => openEdit(account)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-navy-700 transition-all"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        onClick={() => setDeletingId(account.id)}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    /* ── inline delete confirmation ── */
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400">Delete?</span>
+                      <button
+                        onClick={() => handleDelete(account.id)}
+                        className="px-2 py-1 rounded text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all"
+                      >
+                        Yes
+                      </button>
+                      <button
+                        onClick={() => setDeletingId(null)}
+                        className="px-2 py-1 rounded text-xs bg-navy-700 text-slate-400 hover:bg-navy-600 transition-all"
+                      >
+                        No
+                      </button>
+                    </div>
+                  )}
                 </div>
+
                 <div className="text-xs text-slate-500">
                   Created {new Date(account.createdAt).toLocaleDateString()}
                 </div>
@@ -149,16 +210,18 @@ const AccountsPage = () => {
         </div>
       )}
 
-      {/* ── add account modal ── */}
-      <Dialog open={open} onOpenChange={setOpen}>
+      {/* ── create / edit modal ── */}
+      <Dialog open={isOpen} onOpenChange={(open) => { if (!open) closeModal() }}>
         <DialogContent className="bg-navy-800 border-navy-700 text-white">
           <DialogHeader>
-            <DialogTitle className="text-white">Add New Account</DialogTitle>
+            <DialogTitle className="text-white">
+              {selectedAccount ? 'Edit Account' : 'Add New Account'}
+            </DialogTitle>
           </DialogHeader>
 
-          {createError && (
+          {formError && (
             <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-              <p className="text-red-400 text-sm">{createError}</p>
+              <p className="text-red-400 text-sm">{formError}</p>
             </div>
           )}
 
@@ -170,9 +233,7 @@ const AccountsPage = () => {
                 className="bg-navy-900 border-navy-700 text-white"
                 {...register('name')}
               />
-              {errors.name && (
-                <p className="text-red-400 text-xs">{errors.name.message}</p>
-              )}
+              {errors.name && <p className="text-red-400 text-xs">{errors.name.message}</p>}
             </div>
 
             <div className="space-y-2">
@@ -187,26 +248,15 @@ const AccountsPage = () => {
                 <option value={AccountType.CREDIT}>Credit Card</option>
                 <option value={AccountType.SAVINGS}>Savings</option>
               </select>
-              {errors.accountType && (
-                <p className="text-red-400 text-xs">{errors.accountType.message}</p>
-              )}
+              {errors.accountType && <p className="text-red-400 text-xs">{errors.accountType.message}</p>}
             </div>
 
             <div className="flex gap-3 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1 border-navy-700 text-slate-300"
-                onClick={() => { setOpen(false); reset() }}
-              >
+              <Button type="button" variant="outline" className="flex-1 border-navy-700 text-slate-300" onClick={closeModal}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1 bg-violet-500 hover:bg-violet-600 text-white"
-              >
-                {isSubmitting ? 'Creating...' : 'Create Account'}
+              <Button type="submit" disabled={isSubmitting} className="flex-1 bg-violet-500 hover:bg-violet-600 text-white">
+                {isSubmitting ? 'Saving...' : selectedAccount ? 'Save Changes' : 'Create Account'}
               </Button>
             </div>
           </form>
