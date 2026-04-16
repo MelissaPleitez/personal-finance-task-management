@@ -1,5 +1,4 @@
 import api from '@/lib/axios'
-import useAuthStore from '@/store/auth.store'
 import type { Task } from '@/types/task.types'
 import { TaskStatus } from '@/types/task.types'
 import { useEffect, useState } from 'react'
@@ -19,10 +18,9 @@ const useTasks = () => {
   const fetchTasks = async () => {
     try {
       setLoading(true)
-      const { user } = useAuthStore.getState()
 
       const [tasksRes, statusRes] = await Promise.all([
-        api.get<Task[]>(`/tasks/${user?.id}/profile`),
+        api.get<Task[]>(`/tasks`),
         api.get<TaskStatusTotals>('/tasks/total'),
       ])
 
