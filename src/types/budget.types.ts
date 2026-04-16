@@ -12,7 +12,7 @@ export interface Budget {
     id: number,
     name: string,
     limitAmount: number,
-    spentAmount: number,
+    spentAmount?: number,
     period: BudgetPeriod,
     startDate: Date,
     endDate: Date,

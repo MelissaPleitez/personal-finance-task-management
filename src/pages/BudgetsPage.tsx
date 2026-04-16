@@ -220,7 +220,11 @@ const BudgetsPage = () => {
                     <span className="text-slate-400">${Number(budget.spentAmount).toFixed(2)} spent</span>
                     <span className={status.text}>{status.percent.toFixed(0)}%</span>
                   </div>
-                  <Progress value={Math.min(status.percent, 100)} className="h-2 bg-navy-700" />
+                  <Progress
+                    value={Math.min(status.percent, 100)}
+                    className="h-2 rounded-full"
+                    indicatorClassName={status.bar}
+                  />
                 </div>
 
                 {/* footer */}
