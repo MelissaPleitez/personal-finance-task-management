@@ -3,7 +3,7 @@ export interface Profile {
     id: number,
     name: string,
     lastName: string,
-    bio: string,
+    bio: string | null,
     avatarPic: string | null,
     backgroundPic: string | null,
 }

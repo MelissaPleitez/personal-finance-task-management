@@ -14,7 +14,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import api from '@/lib/axios'
-import { Plus, ArrowUpCircle, ArrowDownCircle, Pencil, Trash2 } from 'lucide-react'
+import { Plus, ArrowUpCircle, ArrowDownCircle, Pencil, Trash2, Wallet } from 'lucide-react'
 
 const groupTransactionsByMonth = (transactions: Transaction[]) => {
   return transactions.reduce((groups, transaction) => {
@@ -117,14 +117,25 @@ const TransactionsPage = () => {
 
       {/* ── account selector + add button ── */}
       <div className="flex items-center gap-4">
-        <select
-          className="h-9 px-3 rounded-md bg-navy-800 border border-navy-700 text-white text-sm"
-          value={selectedAccountId ?? ''}
-          onChange={(e) => setSelectedAccountId(e.target.value ? parseInt(e.target.value) : null)}
-        >
-          <option value="">Select an account...</option>
-          {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-        </select>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+  {accounts.map(account => (
+    <button
+      key={account.id}
+      onClick={() => setSelectedAccountId(account.id)}
+      className={`text-left p-4 rounded-xl border transition-all ${
+        selectedAccountId === account.id
+          ? 'border-violet-500 border-2'
+          : 'border-navy-700 hover:border-navy-600'
+      } bg-navy-800`}
+    >
+      <p className="text-xs text-slate-500 mb-1">{account.accountType}</p>
+      <p className="text-white font-medium text-sm">{account.name}</p>
+      <p className="text-lg font-semibold text-green-400 mt-1">
+       
+      </p>
+    </button>
+  ))}
+</div>
 
         {selectedAccountId && (
           <Button size="sm" onClick={openCreate} className="bg-violet-500 hover:bg-violet-600 text-white">
@@ -154,9 +165,10 @@ const TransactionsPage = () => {
 
       {/* ── no account selected ── */}
       {!selectedAccountId && (
-        <div className="flex flex-col items-center justify-center h-48 border border-dashed border-navy-700 rounded-xl">
+        <div className="flex flex-col items-center justify-center h-48 border border-dashed border-navy-700 rounded-xl gap-2">
+          <Wallet size={32} className="text-slate-600" />
           <p className="text-slate-400 text-sm">Select an account to view transactions</p>
-        </div>
+      </div>
       )}
 
       {/* ── loading / error ── */}

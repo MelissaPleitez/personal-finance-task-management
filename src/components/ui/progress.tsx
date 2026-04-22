@@ -25,7 +25,7 @@ function Progress({
       <ProgressPrimitive.Indicator
         className={cn(
           "h-full w-full transition-all duration-500",
-          indicatorClassName || "bg-violet-500" // 👈 fallback
+          indicatorClassName || "bg-violet-500" 
         )}
         style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
       />

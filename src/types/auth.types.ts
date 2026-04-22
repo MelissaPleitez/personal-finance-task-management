@@ -16,6 +16,6 @@ export interface RegisterRequest {
   profile: {
     name: string
     lastName: string
-    bio?: string
+    bio?: string | null
   }
 }
