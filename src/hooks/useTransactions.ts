@@ -8,7 +8,7 @@ interface TransactionTotals {
   balance: number
 }
 
-const useTransactions = (accountId: number | null) => {
+const useTransactions = (accountId?: number | null) => {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [totals, setTotals] = useState<TransactionTotals | null>(null)
   const [loading, setLoading] = useState(false)
