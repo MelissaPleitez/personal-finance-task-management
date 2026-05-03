@@ -1,73 +1,126 @@
-# React + TypeScript + Vite
+# Vault — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React/Next.js frontend for the Vault personal finance manager.
 
-Currently, two official plugins are available:
+> This is the frontend repository. For the backend API see [vault-backend](https://github.com/MelissaPleitez/task-api.git).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Technology | Purpose |
+|---|---|
+| Next.js 14 (App Router) | React framework |
+| TypeScript | Type safety |
+| Tailwind CSS | Styling |
+| shadcn/ui | Component library |
+| Zustand | Global state management |
+| React Hook Form + Zod | Forms and validation |
+| Recharts | Charts and data visualization |
+| Axios | HTTP client |
+| Lucide React | Icons |
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Prerequisites
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- [Node.js](https://nodejs.org/) v18 or higher
+- The [backend API](https://github.com/MelissaPleitez/task-api.git) running on `http://localhost:3000`
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Getting Started
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/MelissaPleitez/personal-finance-task-management.git
+cd finance-management
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. Install dependencies
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
+
+### 3. Set up environment variables
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local`:
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:3000
+```
+
+### 4. Run the development server
+
+```bash
+npm run dev
+```
+
+The app will be available at `http://localhost:3001 or http://localhost:5173/`.
+
+---
+
+## Environment Variables
+
+| Variable | Description | Example |
+|---|---|---|
+| `NEXT_PUBLIC_API_URL` | Backend API base URL | `http://localhost:3000` |
+
+---
+
+## Project Structure
+src/
+├── app/
+│   ├── (auth)/
+│   │   ├── login/
+│   │   └── register/
+│   └── (dashboard)/
+│       ├── accounts/
+│       ├── budgets/
+│       ├── categories/
+│       ├── dashboard/
+│       ├── profile/
+│       ├── recurring/
+│       ├── reports/
+│       ├── tasks/
+│       └── transactions/
+├── components/
+│   ├── layout/
+│   │   ├── Sidebar.tsx
+│   │   └── Topbar.tsx
+│   ├── shared/
+│   │   ├── StatCard.tsx
+│   │   ├── PageHeader.tsx
+│   │   └── EmptyState.tsx
+│   └── ui/              ← shadcn components
+├── hooks/
+│   ├── useAuth.ts
+│   ├── useAccounts.ts
+│   ├── useBudgets.ts
+│   ├── useCategories.ts
+│   └── useTransactions.ts
+├── lib/
+│   ├── axios.ts         ← axios instance with interceptors
+│   └── utils.ts
+├── store/
+│   ├── auth.store.ts    ← Zustand auth state
+│   └── ui.store.ts      ← sidebar state
+└── types/
+├── account.types.ts
+├── budget.types.ts
+├── category.types.ts
+├── transaction.types.ts
+└── user.types.ts
+
+## Available Scripts
+
+```bash
+npm run dev        # start development server
+npm run build      # build for production
+npm run start      # start production server
